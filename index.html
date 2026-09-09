@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chunk Trainer</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --card: #ffffff;
+    --accent: #3b6ef5;
+    --danger: #e5484d;
+    --muted: #6b7280;
+    --border: #e2e5ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    margin: 0;
+    color: #1f2430;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  nav button {
+    background: none;
+    border: none;
+    padding: 8px 14px;
+    margin-right: 4px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  nav button.active {
+    background: var(--accent);
+    color: white;
+  }
+  .header-actions button {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-left: 6px;
+  }
+  main {
+    max-width: 780px;
+    margin: 24px auto;
+    padding: 0 16px 60px;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 10px 0 4px;
+    color: var(--muted);
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 50px; }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 12px;
+  }
+  button.secondary {
+    background: white;
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button.small {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: white;
+    cursor: pointer;
+    margin-right: 4px;
+    margin-top: 4px;
+  }
+  button.danger { color: var(--danger); border-color: #f5c2c4; }
+  button.stopped { background: #fff4e5; border-color: #ffd8a8; }
+  .chunk-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .chunk-row:last-child { border-bottom: none; }
+  .chunk-native { font-weight: 600; }
+  .chunk-meta { font-size: 12px; color: var(--muted); }
+  .chunk-detail { font-size: 13px; margin-top: 6px; color: #444; display: none; }
+  .chunk-detail.show { display: block; }
+  .practice-card { position: relative; }
+  .practice-card .example { margin: 6px 0; color: #333; }
+  .practice-card .explanation { margin: 6px 0; color: var(--muted); font-style: italic; display: none; }
+  .practice-card .explanation.show { display: block; }
+  .practice-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0; }
+  #searchBox { margin-bottom: 12px; }
+  .tag-stopped { color: var(--danger); font-size: 11px; font-weight: 600; margin-left: 6px; }
+  #importFile { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <button class="nav-btn active" data-page="add">Add</button>
+    <button class="nav-btn" data-page="practice">Practice</button>
+    <button class="nav-btn" data-page="browse">Browse / Search</button>
+  </nav>
+  <div class="header-actions">
+    <button id="exportBtn">Export JSON</button>
+    <button id="importBtn">Import JSON</button>
+    <input type="file" id="importFile" accept="application/json">
+  </div>
+</header>
+
+<main>
+
+  <!-- ADD PAGE -->
+  <section class="page active" id="page-add">
+    <div class="card">
+      <h2>Add a Chunk</h2>
+      <form id="addForm">
+        <label>English chunk / collection (required)</label>
+        <input type="text" id="f-native" required>
+
+        <label>Your explanation / version (optional)</label>
+        <textarea id="f-explanation"></textarea>
+
+        <label>Example sentence (required)</label>
+        <textarea id="f-example" required></textarea>
+
+        <button type="submit" class="primary">Save Chunk</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- PRACTICE PAGE -->
+  <section class="page" id="page-practice">
+    <div class="toolbar">
+      <button class="secondary" id="get10Btn">Get 10 Random Chunks</button>
+      <button class="secondary" id="regenBtn">Regenerate</button>
+      <button class="secondary" id="copyAllBtn">Copy All 10</button>
+    </div>
+    <div id="practiceList"></div>
+  </section>
+
+  <!-- BROWSE PAGE -->
+  <section class="page" id="page-browse">
+    <input type="text" id="searchBox" placeholder="Search chunks...">
+    <div id="browseList"></div>
+  </section>
+
+</main>
+
+<script>
+const STORAGE_KEY = 'englishChunks';
+let currentBatch = [];
+
+// ---------- storage ----------
+function loadData() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch { return []; }
+}
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function genId() {
+  return 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+// ---------- navigation ----------
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    if (btn.dataset.page === 'browse') renderBrowseList();
+  });
+});
+
+// ---------- add form ----------
+document.getElementById('addForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const native = document.getElementById('f-native').value.trim();
+  const explanation = document.getElementById('f-explanation').value.trim();
+  const example = document.getElementById('f-example').value.trim();
+  if (!native || !example) return;
+
+  const data = loadData();
+  data.push({ id: genId(), native, explanation, example, stopped: false });
+  saveData(data);
+
+  e.target.reset();
+  alert('Chunk saved!');
+});
+
+// ---------- practice / random 10 ----------
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getRandomTen() {
+  const data = loadData().filter(c => !c.stopped);
+  currentBatch = shuffle(data).slice(0, 10);
+  renderPracticeList();
+}
+
+function renderPracticeList() {
+  const container = document.getElementById('practiceList');
+  container.innerHTML = '';
+  if (currentBatch.length === 0) {
+    container.innerHTML = '<div class="empty">Click "Get 10 Random Chunks" to start.</div>';
+    return;
+  }
+  currentBatch.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'card practice-card';
+    div.innerHTML = `
+      <div class="chunk-native">${escapeHtml(c.native)}</div>
+      <div class="example">${escapeHtml(c.example)}</div>
+      ${c.explanation ? `<div class="explanation" data-id="${c.id}">${escapeHtml(c.explanation)}</div>` : ''}
+      <div class="practice-actions">
+        ${c.explanation ? `<button class="small showBtn" data-id="${c.id}">Show</button>` : ''}
+        <button class="small copyBtn" data-id="${c.id}">Copy</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+document.getElementById('get10Btn').addEventListener('click', getRandomTen);
+document.getElementById('regenBtn').addEventListener('click', getRandomTen);
+
+document.getElementById('practiceList').addEventListener('click', e => {
+  if (e.target.classList.contains('showBtn')) {
+    const id = e.target.dataset.id;
+    const el = document.querySelector(`.explanation[data-id="${id}"]`);
+    el.classList.toggle('show');
+    e.target.textContent = el.classList.contains('show') ? 'Hide' : 'Show';
+  }
+  if (e.target.classList.contains('copyBtn')) {
+    const c = currentBatch.find(x => x.id === e.target.dataset.id);
+    copyText(`${c.native}\n${c.example}`);
+    flashCopied(e.target);
+  }
+});
+
+function copyAll() {
+  if (currentBatch.length === 0) { alert('Get 10 chunks first.'); return; }
+  const text = currentBatch.map((c, i) => `${i + 1}. ${c.native}\n   ${c.example}`).join('\n\n');
+  copyText(text);
+  flashCopied(document.getElementById('copyAllBtn'));
+}
+document.getElementById('copyAllBtn').addEventListener('click', copyAll);
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+function flashCopied(btn) {
+  const original = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = original, 1200);
+}
+
+// ---------- browse / search ----------
+function score(chunk, q) {
+  q = q.toLowerCase();
+  const native = chunk.native.toLowerCase();
+  const example = chunk.example.toLowerCase();
+  const explanation = (chunk.explanation || '').toLowerCase();
+  if (!q) return 0;
+  if (native === q) return 100;
+  if (native.startsWith(q)) return 90;
+  if (native.includes(q)) return 70;
+  if (example.includes(q)) return 40;
+  if (explanation.includes(q)) return 30;
+  return -1;
+}
+
+function renderBrowseList() {
+  const q = document.getElementById('searchBox').value.trim();
+  let data = loadData();
+
+  if (q) {
+    data = data
+      .map(c => ({ c, s: score(c, q) }))
+      .filter(x => x.s >= 0)
+      .sort((a, b) => b.s - a.s)
+      .map(x => x.c);
+  }
+
+  const container = document.getElementById('browseList');
+  container.innerHTML = '';
+  if (data.length === 0) {
+    container.innerHTML = '<div class="empty">No chunks found.</div>';
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  data.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'chunk-row';
+    row.innerHTML = `
+      <div style="flex:1; min-width:200px;">
+        <div class="chunk-native">${escapeHtml(c.native)} ${c.stopped ? '<span class="tag-stopped">STOPPED</span>' : ''}</div>
+        <div class="chunk-detail" data-id="${c.id}">
+          <div><strong>Example:</strong> ${escapeHtml(c.example)}</div>
+          ${c.explanation ? `<div><strong>Explanation:</strong> ${escapeHtml(c.explanation)}</div>` : ''}
+        </div>
+      </div>
+      <div>
+        <button class="small ${c.stopped ? '' : 'stopped'} toggleStopBtn" data-id="${c.id}">${c.stopped ? 'Continue' : 'Stop'}</button>
+        <button class="small viewBtn" data-id="${c.id}">View</button>
+        <button class="small danger deleteBtn" data-id="${c.id}">Delete</button>
+      </div>
+    `;
+    card.appendChild(row);
+  });
+  container.appendChild(card);
+}
+
+document.getElementById('searchBox').addEventListener('input', renderBrowseList);
+
+document.getElementById('browseList').addEventListener('click', e => {
+  const id = e.target.dataset.id;
+  if (!id) return;
+  let data = loadData();
+
+  if (e.target.classList.contains('toggleStopBtn')) {
+    data = data.map(c => c.id === id ? { ...c, stopped: !c.stopped } : c);
+    saveData(data);
+    renderBrowseList();
+  }
+  if (e.target.classList.contains('deleteBtn')) {
+    if (!confirm('Delete this chunk permanently?')) return;
+    data = data.filter(c => c.id !== id);
+    saveData(data);
+    renderBrowseList();
+  }
+  if (e.target.classList.contains('viewBtn')) {
+    const detail = document.querySelector(`.chunk-detail[data-id="${id}"]`);
+    detail.classList.toggle('show');
+    e.target.textContent = detail.classList.contains('show') ? 'Hide' : 'View';
+  }
+});
+
+// ---------- export / import ----------
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chunks-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  document.getElementById('importFile').click();
+});
+
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const incoming = JSON.parse(evt.target.result);
+      if (!Array.isArray(incoming)) throw new Error('Invalid format');
+      const choice = confirm(
+        'Click OK to MERGE with existing data (skips duplicates by matching native text).\nClick Cancel to REPLACE all existing data.'
+      );
+      let data = loadData();
+      if (choice) {
+        const existingNatives = new Set(data.map(c => c.native.toLowerCase()));
+        incoming.forEach(c => {
+          if (!existingNatives.has((c.native || '').toLowerCase())) {
+            data.push({ id: c.id || genId(), native: c.native, explanation: c.explanation || '', example: c.example, stopped: !!c.stopped });
+          }
+        });
+      } else {
+        data = incoming.map(c => ({ id: c.id || genId(), native: c.native, explanation: c.explanation || '', example: c.example, stopped: !!c.stopped }));
+      }
+      saveData(data);
+      alert('Import successful!');
+      renderBrowseList();
+    } catch (err) {
+      alert('Import failed: invalid JSON file.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ---------- helpers ----------
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+// initial render
+renderBrowseList();
+</script>
+
+</body>
+</html>
