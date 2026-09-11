@@ -145,6 +145,8 @@
     <button class="nav-btn active" data-page="add">Add</button>
     <button class="nav-btn" data-page="practice">Practice</button>
     <button class="nav-btn" data-page="browse">Browse / Search</button>
+    <!-- add this inside <header>, e.g. after the nav -->
+    <div id="chunkCounter" style="font-size:13px; color:var(--muted);"></div>
   </nav>
   <div class="header-actions">
     <button id="exportBtn">Export JSON</button>
@@ -202,6 +204,21 @@ function loadData() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
   } catch { return []; }
 }
+function updateChunkCounter() {
+  const data = loadData();
+  const total = data.length;
+  const stopped = data.filter(c => c.stopped).length;
+  document.getElementById('chunkCounter').textContent =
+    `${total} chunks (${stopped} stopped)`;
+}
+
+// Call this after every place that changes data:
+// 1. after saving a new chunk (end of addForm submit handler)
+// 2. after delete/stop toggle (end of browseList click handler)
+// 3. after import (end of importFile change handler)
+// 4. once on page load
+
+updateChunkCounter();
 function saveData(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
