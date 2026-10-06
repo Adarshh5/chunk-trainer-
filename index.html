@@ -207,6 +207,8 @@
       <button class="secondary" id="get10Btn">Get 10 Random Chunks</button>
       <button class="secondary" id="regenBtn">Regenerate</button>
       <button class="secondary" id="copyAllBtn">Copy All 10</button>
+      <button class="secondary" id="get50Btn">Get 50 Random Chunks</button>
+<button class="secondary" id="copy50Btn">Copy All 50 (with explanations)</button>
     </div>
     <div id="practiceList"></div>
   </section>
@@ -375,6 +377,31 @@ function flashCopied(btn) {
   btn.textContent = 'Copied!';
   setTimeout(() => btn.textContent = original, 1200);
 }
+
+// ---------- 50 random chunks ----------
+function getRandomFifty() {
+  const data = loadData().filter(c => !c.stopped);
+  currentBatch = shuffle(data).slice(0, 50);
+  renderPracticeList();
+}
+
+function copyAllWithExplanations() {
+  if (currentBatch.length === 0) {
+    alert('Click "Get 50 Random Chunks" first.');
+    return;
+  }
+  const text = currentBatch.map((c, i) => {
+    let block = `${i + 1}. ${c.native}\n   Example: ${c.example}`;
+    if (c.explanation) block += `\n   Explanation: ${c.explanation}`;
+    return block;
+  }).join('\n\n');
+
+  copyText(text);
+  flashCopied(document.getElementById('copy50Btn'));
+}
+
+document.getElementById('get50Btn').addEventListener('click', getRandomFifty);
+document.getElementById('copy50Btn').addEventListener('click', copyAllWithExplanations);
 
 // ---------- browse / search ----------
 function score(chunk, q) {
