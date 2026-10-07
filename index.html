@@ -208,7 +208,7 @@
       <button class="secondary" id="regenBtn">Regenerate</button>
       <button class="secondary" id="copyAllBtn">Copy All 10</button>
       <button class="secondary" id="get50Btn">Get 50 Random Chunks</button>
-<button class="secondary" id="copy50Btn">Copy All 50 (with explanations)</button>
+      <button class="secondary" id="copy50Btn">Copy All 50</button>
     </div>
     <div id="practiceList"></div>
   </section>
@@ -392,7 +392,6 @@ function copyAllWithExplanations() {
   }
   const text = currentBatch.map((c, i) => {
     let block = `${i + 1}. ${c.native}\n   Example: ${c.example}`;
-    if (c.explanation) block += `\n   Explanation: ${c.explanation}`;
     return block;
   }).join('\n\n');
 
